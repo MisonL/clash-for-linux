@@ -248,6 +248,9 @@ fi
 echo ''
 
 # 添加环境变量(root权限) - 使用配置的端口
+if [ -f /etc/profile.d/clash.sh ]; then
+	echo -e "\033[33m[WARN] 检测到旧版环境变量文件 /etc/profile.d/clash.sh，建议确认是否需要清理\033[0m"
+fi
 cat>/etc/profile.d/clash-for-linux.sh<<EOF
 # 开启系统代理
 function proxy_on() {
