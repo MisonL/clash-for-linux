@@ -35,9 +35,10 @@ CLASH_HTTP_PORT=${CLASH_HTTP_PORT:-7890}
 CLASH_SOCKS_PORT=${CLASH_SOCKS_PORT:-7891}
 CLASH_REDIR_PORT=${CLASH_REDIR_PORT:-7892}
 CLASH_LISTEN_IP=${CLASH_LISTEN_IP:-0.0.0.0}
-CLASH_ALLOW_LAN=${CLASH_ALLOW_LAN:-true}
+CLASH_ALLOW_LAN=${CLASH_ALLOW_LAN:-false}
 EXTERNAL_CONTROLLER_ENABLED=${EXTERNAL_CONTROLLER_ENABLED:-true}
-EXTERNAL_CONTROLLER=${EXTERNAL_CONTROLLER:-0.0.0.0:9090}
+EXTERNAL_CONTROLLER=${EXTERNAL_CONTROLLER:-127.0.0.1:9090}
+ALLOW_INSECURE_TLS=${ALLOW_INSECURE_TLS:-false}
 
 
 
@@ -110,14 +111,19 @@ Text1="Clash订阅地址可访问！"
 Text2="Clash订阅地址不可访问！"
 
 # 构建检测 curl 命令，添加自定义请求头
-CHECK_CMD="curl -o /dev/null -L -k -sS --retry 5 -m 10 --connect-timeout 10 -w \"%{http_code}\""
-if [ -n "$CLASH_HEADERS" ]; then
-	CHECK_CMD="$CHECK_CMD -H '$CLASH_HEADERS'"
+CHECK_CMD=(curl -o /dev/null -L -sS --retry 5 -m 10 --connect-timeout 10 -w "%{http_code}")
+if [ "$ALLOW_INSECURE_TLS" = "true" ]; then
+	CHECK_CMD+=(-k)
+	echo -e "\033[33m[WARN] 已启用不安全的 TLS 下载（跳过证书校验）\033[0m"
 fi
-CHECK_CMD="$CHECK_CMD $URL"
+if [ -n "$CLASH_HEADERS" ]; then
+	CHECK_CMD+=(-H "$CLASH_HEADERS")
+fi
+CHECK_CMD+=("$URL")
 
 # 检查订阅地址
-eval $CHECK_CMD | grep -E '^[23][0-9]{2}$' &>/dev/null
+status_code=$("${CHECK_CMD[@]}")
+echo "$status_code" | grep -E '^[23][0-9]{2}$' &>/dev/null
 ReturnStatus=$?
 if_success $Text1 $Text2 $ReturnStatus
 
@@ -127,26 +133,32 @@ Text3="配置文件config.yaml下载成功！"
 Text4="配置文件config.yaml下载失败，退出启动！"
 
 # 构建 curl 命令，添加自定义请求头
-CURL_CMD="curl -L -k -sS --retry 5 -m 10 -o $Temp_Dir/clash.yaml"
-if [ -n "$CLASH_HEADERS" ]; then
-	CURL_CMD="$CURL_CMD -H '$CLASH_HEADERS'"
+CURL_CMD=(curl -L -sS --retry 5 -m 10 -o "$Temp_Dir/clash.yaml")
+if [ "$ALLOW_INSECURE_TLS" = "true" ]; then
+	CURL_CMD+=(-k)
 fi
-CURL_CMD="$CURL_CMD $URL"
+if [ -n "$CLASH_HEADERS" ]; then
+	CURL_CMD+=(-H "$CLASH_HEADERS")
+fi
+CURL_CMD+=("$URL")
 
 # 尝试使用curl进行下载
-eval $CURL_CMD
+"${CURL_CMD[@]}"
 ReturnStatus=$?
 if [ $ReturnStatus -ne 0 ]; then
 	# 如果使用curl下载失败，尝试使用wget进行下载
-	WGET_CMD="wget -q --no-check-certificate -O $Temp_Dir/clash.yaml"
-	if [ -n "$CLASH_HEADERS" ]; then
-		WGET_CMD="$WGET_CMD --header='$CLASH_HEADERS'"
+	WGET_CMD=(wget -q -O "$Temp_Dir/clash.yaml")
+	if [ "$ALLOW_INSECURE_TLS" = "true" ]; then
+		WGET_CMD+=(--no-check-certificate)
 	fi
-	WGET_CMD="$WGET_CMD $URL"
+	if [ -n "$CLASH_HEADERS" ]; then
+		WGET_CMD+=(--header="$CLASH_HEADERS")
+	fi
+	WGET_CMD+=("$URL")
 	
 	for i in {1..10}
 	do
-		eval $WGET_CMD
+		"${WGET_CMD[@]}"
 		ReturnStatus=$?
 		if [ $ReturnStatus -eq 0 ]; then
 			break
@@ -236,7 +248,7 @@ fi
 echo ''
 
 # 添加环境变量(root权限) - 使用配置的端口
-cat>/etc/profile.d/clash.sh<<EOF
+cat>/etc/profile.d/clash-for-linux.sh<<EOF
 # 开启系统代理
 function proxy_on() {
 	export http_proxy=http://${CLASH_LISTEN_IP}:${CLASH_HTTP_PORT}
@@ -260,6 +272,6 @@ function proxy_off(){
 }
 EOF
 
-echo -e "请执行以下命令加载环境变量: source /etc/profile.d/clash.sh\n"
+echo -e "请执行以下命令加载环境变量: source /etc/profile.d/clash-for-linux.sh\n"
 echo -e "请执行以下命令开启系统代理: proxy_on\n"
 echo -e "若要临时关闭系统代理，请执行: proxy_off\n"

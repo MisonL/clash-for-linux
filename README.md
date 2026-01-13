@@ -16,6 +16,8 @@
 - 本项目是基于 [clash](https://github.com/Dreamacro/clash) 、[yacd](https://github.com/haishanh/yacd) 进行的配置整合，关于clash、yacd的详细配置请去原项目查看。
 - 此项目不提供任何订阅信息，请自行准备Clash订阅地址。
 - 运行前请手动更改`.env`文件中的`CLASH_URL`变量值，否则无法正常运行。
+- 默认将管理面板仅绑定到本机（`127.0.0.1:9090`），如需对外访问请在`.env`中自行配置并确保`CLASH_SECRET`足够复杂。
+- 默认开启 TLS 证书校验，若确需跳过校验请在`.env`中设置`ALLOW_INSECURE_TLS=true`（不推荐）。
 - 当前在RHEL系列和Debian系列Linux系统中测试过，其他系列可能需要适当修改脚本。
 - 支持 x86_64/aarch64 平台
 
@@ -71,7 +73,7 @@ Clash订阅地址可访问！                                      [  OK  ]
 Clash Dashboard 访问地址：http://<ip>:9090/ui
 Secret：xxxxxxxxxxxxx
 
-请执行以下命令加载环境变量: source /etc/profile.d/clash.sh
+请执行以下命令加载环境变量: source /etc/profile.d/clash-for-linux.sh
 
 请执行以下命令开启系统代理: proxy_on
 
@@ -80,7 +82,7 @@ Secret：xxxxxxxxxxxxx
 ```
 
 ```bash
-$ source /etc/profile.d/clash.sh
+$ source /etc/profile.d/clash-for-linux.sh
 $ proxy_on
 ```
 
