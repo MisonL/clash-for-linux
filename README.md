@@ -2,15 +2,52 @@
 
 # 项目介绍
 
-此项目以 Clash Meta / Mihomo 内核为核心，提供自动识别架构并下载对应二进制的能力，同时通过 systemd 统一管理服务，配合清晰的目录结构，便于维护与回滚。基于脚本实现开箱即用的代理体验，主要用于解决服务器访问 GitHub 等海外资源速度慢的问题。
+**clash-for-linux** 是一个面向 Linux 服务器/桌面环境的 **Clash 自动化运行与管理脚本集**。
+ 项目基于 **Clash Meta / Mihomo 内核**，通过脚本方式实现 **开箱即用、可维护、可回滚** 的代理部署体验，适合用于提升服务器访问 GitHub、Docker Hub 等海外资源的速度。
 <br>
 
-**2026.01.13**持续更新。
+本项目主要解决以下问题：
 
-<br>
+- ❌ 官方 Clash 二进制下载、架构区分、配置部署繁琐
+- ❌ 手动管理 Clash 进程、端口、环境变量不稳定
+- ❌ systemd 服务、权限、安全配置缺乏统一方案
+- ❌ 多订阅 / 配置混乱，升级和回滚成本高
 
+### 核心特性
+
+- 🚀 **自动识别系统架构**（x86_64 / aarch64 / armv7），下载并使用对应 Clash 内核
+- 🧩 **脚本化部署**，无需手动安装依赖，适合服务器与无桌面环境
+- 🔧 **systemd 服务管理**，支持 start / stop / restart / enable
+- 🗂️ **清晰的目录结构**，配置、日志、二进制、mixin 分离，便于维护与回滚
+- 🔐 **安全默认配置**
+  - 管理面板默认仅绑定 `127.0.0.1`
+  - 自动生成或自定义 Secret
+  - 默认开启 TLS 校验
+- 🧪 **端口自动检测与分配**，避免冲突
+- 🔄 **多订阅管理（clashctl）**，支持订阅切换、更新、日志查看
+- 🧠 **Mixin 机制**，可按需追加/覆盖 Clash 配置
+- 🌐 **Tun 模式支持**（需 Clash Meta / Premium）
+
+### 适用场景
+
+- Linux 云服务器（VPS）
+- 家用 NAS / 小主机（x86 / ARM）
+- 需要稳定访问 GitHub、Go / Node / Docker 生态的开发环境
+- 不希望长期手动维护 Clash 运行状态的用户
+
+### 项目定位说明（很重要，避免误解）
+
+- ✅ 本项目 **不提供任何订阅内容**，仅负责运行与管理
+- ✅ 本项目是 **Clash / yacd 的工程化封装**，并非 Clash 的替代品
+- ❌ 不适合只想“点点 UI 就用”的纯桌面用户
+- ❌ 不包含任何节点、机场或订阅推荐
+
+### 更新状态
+
+📅 **持续维护中**
+ 最近更新：**2026-01-13**
+  
 # 使用须知
-
 - 支持普通用户运行，涉及 systemd 安装/端口转发等系统级操作时需要 root 或 sudo。
 - 使用过程中如遇到问题，请优先查已有的 [issues](https://github.com/wanhebin/clash-for-linux/issues)。
 - 在进行issues提交前，请替换提交内容中是敏感信息（例如：订阅地址）。
@@ -34,14 +71,14 @@
 下载项目
 
 ```bash
-$ git clone https://github.com/wnlen/clash-for-linux.git
+git clone https://github.com/wnlen/clash-for-linux.git
 ```
 
 进入到项目目录，编辑`.env`文件，修改变量`CLASH_URL`的值。
 
 ```bash
-$ cd clash-for-linux
-$ vim .env
+cd clash-for-linux
+vim .env
 ```
 
 > **注意：** `.env` 文件中的变量 `CLASH_SECRET` 为自定义 Clash Secret，值为空时，脚本将自动生成随机字符串。
@@ -57,13 +94,13 @@ $ vim .env
 - 进入项目目录
 
 ```bash
-$ cd clash-for-linux
+cd clash-for-linux
 ```
 
 - 运行启动脚本
 
 ```bash
-$ sudo bash start.sh
+sudo bash start.sh
 
 正在检测订阅地址...
 Clash订阅地址可访问！                                      [  OK  ]
@@ -86,8 +123,8 @@ Secret：xxxxxxxxxxxxx
 ```
 
 ```bash
-$ source /etc/profile.d/clash-for-linux.sh
-$ proxy_on
+source /etc/profile.d/clash-for-linux.sh
+proxy_on
 ```
 
 <br>
@@ -97,28 +134,28 @@ $ proxy_on
 统一管理入口，支持启动/停止/重启/状态/更新/修改订阅：
 
 ```bash
-$ sudo ./clashctl status
-$ sudo ./clashctl start
-$ sudo ./clashctl restart
-$ sudo ./clashctl update
-$ sudo ./clashctl set-url "https://example.com/your-subscribe"
+sudo ./clashctl status
+sudo ./clashctl start
+sudo ./clashctl restart
+sudo ./clashctl update
+sudo ./clashctl set-url "https://example.com/your-subscribe"
 ```
 
 订阅管理（多订阅）：
 
 ```bash
-$ sudo ./clashctl sub add office "https://example.com/office" "User-Agent: ClashforWindows/0.20.39"
-$ sudo ./clashctl sub add personal "https://example.com/personal"
-$ sudo ./clashctl sub list
-$ sudo ./clashctl sub use personal
-$ sudo ./clashctl sub update
-$ sudo ./clashctl sub log
+sudo ./clashctl sub add office "https://example.com/office" "User-Agent: ClashforWindows/0.20.39"
+sudo ./clashctl sub add personal "https://example.com/personal"
+sudo ./clashctl sub list
+sudo ./clashctl sub use personal
+sudo ./clashctl sub update
+sudo ./clashctl sub log
 ```
 
 安装脚本会将 `clashctl` 安装到 `/usr/local/bin/clashctl`，安装后可直接使用：
 
 ```bash
-$ sudo clashctl status
+sudo clashctl status
 ```
 
 <br>
@@ -138,7 +175,7 @@ git clone --branch master --depth 1 https://github.com/wnlen/clash-for-linux.git
 脚本会自动识别安装路径、创建低权限用户、检测端口冲突，并根据架构自动下载 Clash 内核（可通过 `CLASH_DOWNLOAD_URL_TEMPLATE` 自定义下载地址）。
 
 ```bash
-$ sudo bash install.sh
+sudo bash install.sh
 ```
 
 如需调整安装路径或服务行为，可使用以下环境变量：
@@ -153,13 +190,13 @@ $ sudo bash install.sh
 卸载：
 
 ```bash
-$ sudo bash uninstall.sh
+sudo bash uninstall.sh
 ```
 
 - 检查服务端口
 
 ```bash
-$ netstat -tln | grep -E '9090|789.'
+netstat -tln | grep -E '9090|789.'
 tcp        0      0 127.0.0.1:9090          0.0.0.0:*               LISTEN     
 tcp6       0      0 :::7890                 :::*                    LISTEN     
 tcp6       0      0 :::7891                 :::*                    LISTEN     
@@ -169,7 +206,7 @@ tcp6       0      0 :::7892                 :::*                    LISTEN
 - 检查环境变量
 
 ```bash
-$ env | grep -E 'http_proxy|https_proxy'
+env | grep -E 'http_proxy|https_proxy'
 http_proxy=http://127.0.0.1:7890
 https_proxy=http://127.0.0.1:7890
 ```
@@ -188,7 +225,7 @@ https_proxy=http://127.0.0.1:7890
 如需更新订阅并重启，可执行：
 
 ```bash
-$ sudo bash restart.sh --update
+sudo bash restart.sh --update
 ```
 
 ## 更新订阅
@@ -196,13 +233,13 @@ $ sudo bash restart.sh --update
 如只需更新订阅配置但不重启服务，可执行：
 
 ```bash
-$ sudo bash update.sh
+sudo bash update.sh
 ```
 
 如需通过订阅管理更新，可执行：
 
 ```bash
-$ sudo clashctl sub update personal
+sudo clashctl sub update personal
 ```
 
 <br>
@@ -238,20 +275,20 @@ export CLASH_TUN_DNS_HIJACK='any:53'
 - 进入项目目录
 
 ```bash
-$ cd clash-for-linux
+cd clash-for-linux
 ```
 
 - 关闭服务
 
 ```bash
-$ sudo bash shutdown.sh
+sudo bash shutdown.sh
 
 服务关闭成功，请执行以下命令关闭系统代理：proxy_off
 
 ```
 
 ```bash
-$ proxy_off
+proxy_off
 ```
 
 然后检查程序端口、进程以及环境变量`http_proxy|https_proxy`，若都没则说明服务正常关闭。
@@ -263,20 +300,20 @@ $ proxy_off
 推荐使用自动安装脚本生成 systemd 单元（自动识别安装路径、创建低权限用户并修正目录权限）：
 
 ```bash
-$ sudo bash scripts/install_systemd.sh
+sudo bash scripts/install_systemd.sh
 ```
 
 启用并启动服务：
 
 ```bash
-$ sudo systemctl daemon-reload
-$ sudo systemctl enable --now clash-for-linux.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now clash-for-linux.service
 ```
 
 停止服务：
 
 ```bash
-$ sudo systemctl stop clash-for-linux.service
+sudo systemctl stop clash-for-linux.service
 ```
 
 > 如需自定义运行用户，可在执行脚本前设置 `CLASH_SERVICE_USER`（可选 `CLASH_SERVICE_GROUP`）。
