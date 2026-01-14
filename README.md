@@ -72,7 +72,7 @@ sudo bash install.sh
 - 安装 `clashctl` 到 `/usr/local/bin`
 - 创建低权限运行用户（默认 `clash`）
 
-### 进阶安装：
+### [进阶安装与高级用法](docs/install.md)
 
 ------
 
