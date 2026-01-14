@@ -71,6 +71,19 @@ if [ -z "$Secret" ]; then
   Secret="$(openssl rand -hex 32)"
 fi
 
+# 强制写入 secret 到指定配置文件（存在则替换，不存在则追加）
+force_write_secret() {
+  local file="$1"
+  [ -f "$file" ] || return 0
+
+  if grep -qE '^[[:space:]]*secret:' "$file"; then
+    # 替换整行 secret（无论原来是啥，包括 SECRET_PLACEHOLDER / "${CLASH_SECRET}"）
+    sed -i -E "s|^[[:space:]]*secret:.*$|secret: ${Secret}|g" "$file"
+  else
+    # 没有 secret 行就追加到文件末尾
+    printf "\nsecret: %s\n" "$Secret" >> "$file"
+  fi
+}
 
 # 设置默认值
 CLASH_HTTP_PORT="${CLASH_HTTP_PORT:-7890}"
@@ -165,6 +178,8 @@ ensure_fallback_config() {
       exit 1
     fi
   fi
+  # 强制写入真实 secret
+  force_write_secret "$Conf_Dir/config.yaml"
 }
 
 SKIP_CONFIG_REBUILD=false
@@ -329,11 +344,11 @@ if [ "$SKIP_CONFIG_REBUILD" != "true" ]; then
   fi
 
   # 写入 secret
-  sed -r -i "/^secret: /s@(secret: ).*@\1${Secret}@g" "$Conf_Dir/config.yaml" || true
+  force_write_secret "$Conf_Dir/config.yaml"
 else
   # 兜底路径：尽量也写入 secret（若 config 里有 secret: 行就替换；没有就追加）
   if grep -qE '^secret:\s*' "$Conf_Dir/config.yaml" 2>/dev/null; then
-    sed -r -i "/^secret: /s@(secret: ).*@\1${Secret}@g" "$Conf_Dir/config.yaml" || true
+    force_write_secret "$Conf_Dir/config.yaml"
   else
     echo "secret: ${Secret}" >> "$Conf_Dir/config.yaml" || true
   fi
