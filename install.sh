@@ -260,3 +260,7 @@ echo -e "🧭 下一步（可选）："
 echo -e "  source /etc/profile.d/clash-for-linux.sh"
 echo -e "  proxy_on"
 echo
+sleep 1
+if journalctl -u clash-for-linux.service -n 30 --no-pager | grep -q "Clash订阅地址不可访问"; then
+  echo "[WARN] 服务启动失败：订阅不可用，请检查 CLASH_URL（可能过期/404）。"
+fi
