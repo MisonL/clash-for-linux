@@ -297,26 +297,6 @@ export SUBCONVERTER_DOWNLOAD_URL_TEMPLATE='https://example.com/subconverter_{arc
 
 当 `subconverter` 不可用时会自动跳过转换，并提示警告。
 
-
-<br>
-
-## Clash Dashboard
-
-- 访问 Clash Dashboard
-
-通过浏览器访问 `start.sh` 执行成功后输出的地址，例如：http://192.168.0.1:9090/ui
-
-- 登录管理界面
-
-在`API Base URL`一栏中输入：http://\<ip\>:9090 ，在`Secret(optional)`一栏中输入启动成功后输出的Secret。
-
-点击Add并选择刚刚输入的管理界面地址，之后便可在浏览器上进行一些配置。
-
-- 更多教程
-
-此 Clash Dashboard 使用的是[yacd](https://github.com/haishanh/yacd)项目，详细使用方法请移步到yacd上查询。
-
-
 <br>
 
 ## 设置代理
