@@ -204,7 +204,7 @@ source "$Server_Dir/scripts/get_cpu_arch.sh"
 
 if [[ -z "${CpuArch:-}" ]]; then
   echo "[ERROR] Failed to obtain CPU architecture" >&2
-  exit 1
+  exit 2
 fi
 
 # shellcheck disable=SC1090
@@ -224,13 +224,26 @@ ensure_fallback_config() {
       echo -e "\033[33m[WARN]\033[0m 已复制 fallback_config.yaml -> conf/config.yaml（兜底）"
     else
       echo -e "\033[31m[ERROR]\033[0m 未找到可用的 conf/fallback_config.yaml，无法兜底启动" >&2
+      if [ "${SYSTEMD_MODE:-false}" = "true" ]; then
+        return 1
+      else
+        exit 1
+      fi
+    fi
+  fi
+
+  # 强制写入真实 secret（失败时也遵循同样规则）
+  if ! force_write_secret "$Conf_Dir/config.yaml"; then
+    echo -e "\033[31m[ERROR]\033[0m 写入 secret 失败：$Conf_Dir/config.yaml" >&2
+    if [ "${SYSTEMD_MODE:-false}" = "true" ]; then
+      return 1
+    else
       exit 1
     fi
   fi
-  # 强制写入真实 secret
-  force_write_secret "$Conf_Dir/config.yaml"
-}
 
+  return 0
+}
 SKIP_CONFIG_REBUILD=false
 
 # systemd 模式下若 URL 为空：直接兜底启动
