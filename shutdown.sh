@@ -7,12 +7,14 @@ Temp_Dir="$Server_Dir/temp"
 Conf_Dir="$Server_Dir/conf"
 PID_FILE="$Temp_Dir/clash.pid"
 
+mkdir -p "$Temp_Dir"
+
 # 1) 优先按 PID_FILE 停
 if [ -f "$PID_FILE" ]; then
   PID="$(cat "$PID_FILE" 2>/dev/null || true)"
   if [ -n "${PID:-}" ] && kill -0 "$PID" 2>/dev/null; then
     kill "$PID" 2>/dev/null || true
-    for _ in {1..5}; do
+    for _ in {1..8}; do
       sleep 1
       if ! kill -0 "$PID" 2>/dev/null; then
         break
@@ -29,7 +31,7 @@ else
   PIDS="$(pgrep -f " -d ${Conf_Dir}(\s|$)" || true)"
   if [ -n "${PIDS:-}" ]; then
     kill $PIDS 2>/dev/null || true
-    for _ in {1..5}; do
+    for _ in {1..8}; do
       sleep 1
       if ! pgrep -f " -d ${Conf_Dir}(\s|$)" >/dev/null 2>&1; then
         break

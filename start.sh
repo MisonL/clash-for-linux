@@ -18,7 +18,7 @@ Server_Dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # 加载.env变量文件
 # shellcheck disable=SC1090
-source "$Server_Dir/.env"
+[ -f "$Server_Dir/.env" ] && source "$Server_Dir/.env"
 
 # systemd 模式开关（必须在 set -u 下安全）
 SYSTEMD_MODE="${SYSTEMD_MODE:-false}"
@@ -40,17 +40,28 @@ mkdir -p "$Conf_Dir" "$Temp_Dir" "$Log_Dir"
 
 PID_FILE="${CLASH_PID_FILE:-$Temp_Dir/clash.pid}"
 
+is_running() {
+  if [ -f "$PID_FILE" ]; then
+    local pid
+    pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+    if [ -n "${pid:-}" ] && kill -0 "$pid" 2>/dev/null; then
+      return 0
+    fi
+  fi
+  return 1
+}
+
+if is_running; then
+  echo -e "\n[OK] Clash 已在运行 (pid=$(cat "$PID_FILE"))，跳过重复启动\n"
+  exit 0
+fi
+
 # 将 CLASH_URL 变量的值赋给 URL 变量，并检查 CLASH_URL 是否为空
 # systemd 模式：允许为空（用兜底配置启动）
-if [ "${SYSTEMD_MODE}" = "true" ]; then
+if [ "$SYSTEMD_MODE" = "true" ]; then
   URL="${CLASH_URL:-}"
 else
-  SYSTEMD_MODE="${SYSTEMD_MODE:-false}"
-  if [ "$SYSTEMD_MODE" = "true" ]; then
-    URL="${CLASH_URL:-}"
-  else
-    URL=${CLASH_URL:?Error: CLASH_URL variable is not set or empty}
-  fi
+  URL="${CLASH_URL:?Error: CLASH_URL variable is not set or empty}"
 fi
 
 # 获取 CLASH_SECRET 值：优先 .env；其次读取旧 config；占位符视为无效；最后生成随机值
@@ -397,11 +408,18 @@ Clash_Bin="$(resolve_clash_bin "$Server_Dir" "$CpuArch")"
 ReturnStatus=$?
 
 if [ "$ReturnStatus" -eq 0 ]; then
-  nohup "$Clash_Bin" -d "$Conf_Dir" &> "$Log_Dir/clash.log" &
-  PID=$!
-  ReturnStatus=$?
-  if [ "$ReturnStatus" -eq 0 ]; then
-    echo "$PID" > "$PID_FILE"
+  if [ "${SYSTEMD_MODE:-false}" = "true" ]; then
+    echo "[INFO] SYSTEMD_MODE=true，前台启动交给 systemd 监管"
+    # systemd 前台：让 systemd 直接跟踪 clash 进程
+    exec "$Clash_Bin" -d "$Conf_Dir"
+  else
+    echo "[INFO] 后台启动 (nohup)"
+    nohup "$Clash_Bin" -d "$Conf_Dir" >>"$Log_Dir/clash.log" 2>&1 &
+    PID=$!
+    ReturnStatus=$?
+    if [ "$ReturnStatus" -eq 0 ]; then
+      echo "$PID" > "$PID_FILE"
+    fi
   fi
 fi
 

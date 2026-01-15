@@ -51,19 +51,16 @@ chown -R "$Service_User:$Service_Group" \
 cat >"$Unit_Path"<<EOF
 [Unit]
 Description=Clash for Linux
-After=network.target
-Wants=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
-Type=forking
+Type=simple
 WorkingDirectory=$Server_Dir
 
 # 启动 / 停止
 ExecStart=/bin/bash $Server_Dir/start.sh
 ExecStop=/bin/bash $Server_Dir/shutdown.sh
-
-# PID 管理
-PIDFile=$PID_FILE
 
 # 失败策略
 Restart=on-failure
