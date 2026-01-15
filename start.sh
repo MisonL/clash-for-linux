@@ -383,6 +383,19 @@ if [ "$SKIP_CONFIG_REBUILD" != "true" ]; then
   fi
 fi
 
+# =========================================================
+# 判断订阅是否已是完整 Clash YAML（Meta / Mihomo / Premium）
+# 若是完整配置，则直接使用，跳过后续代理拆解与拼接
+# =========================================================
+if [ "$SKIP_CONFIG_REBUILD" != "true" ]; then
+  if grep -qE '^(proxies:|proxy-providers:|mixed-port:|port:)' "$Temp_Dir/clash.yaml"; then
+    echo "[INFO] subscription is a full Clash config, use it directly"
+    cp -f "$Temp_Dir/clash.yaml" "$Conf_Dir/config.yaml"
+    force_write_secret "$Conf_Dir/config.yaml"
+    SKIP_CONFIG_REBUILD=true
+  fi
+fi
+
 #################### 订阅转换/拼接（非兜底路径） ####################
 if [ "$SKIP_CONFIG_REBUILD" != "true" ]; then
   # 运行期配置文件：默认用 Temp_Dir（systemd + clash 用户可写）
@@ -405,7 +418,12 @@ if [ "$SKIP_CONFIG_REBUILD" != "true" ]; then
   fi
 
   # 3) 取出代理相关配置（从 proxies: 开始）
-  sed -n '/^proxies:/,$p' "$Temp_Dir/clash_config.yaml" > "$Temp_Dir/proxy.txt"
+  if grep -q '^proxies:' "$Temp_Dir/clash_config.yaml"; then
+    sed -n '/^proxies:/,$p' "$Temp_Dir/clash_config.yaml" > "$Temp_Dir/proxy.txt"
+  else
+    echo "[WARN] no top-level 'proxies:' found in subscription, skip proxy extraction" >&2
+    SKIP_CONFIG_REBUILD=true
+  fi
 
   # 4) 合并形成新的 config，并替换配置占位符
   cat "$Temp_Dir/templete_config.yaml" > "$CONFIG_FILE"
