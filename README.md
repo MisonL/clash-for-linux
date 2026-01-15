@@ -92,6 +92,8 @@ sudo systemctl restart clash-for-linux.service
 
 说明：
 
+- 安装脚本会自动识别并适配 **v2rayN / Base64 订阅**（vmess / vless / ss 等），并生成 `proxy-providers` 配置
+- 若使用 **Clash YAML 订阅**，将直接作为配置文件使用，不经过自动转换
 - `CLASH_SECRET` 为空时将自动生成
 - 端口支持设置为 `auto`，自动检测并分配
 - 其它架构可通过 `CLASH_BIN` 指定二进制路径，或命名为 `clash-linux-<arch>`
