@@ -297,9 +297,17 @@ if [ "$SKIP_CONFIG_REBUILD" != "true" ]; then
   CURL_CMD+=("$URL")
 
   set +e
-  "${CURL_CMD[@]}"
+  CURL_ERR="$Temp_Dir/curl.err"
+  : > "$CURL_ERR"
+  "${CURL_CMD[@]}" 2>>"$CURL_ERR"
   ReturnStatus=$?
   set -e
+
+  echo "[DBG] curl rc=$ReturnStatus"
+  if [ -s "$CURL_ERR" ]; then
+    echo "[DBG] curl stderr (last 50 lines):"
+    tail -n 50 "$CURL_ERR"
+  fi
 
   if [ "$ReturnStatus" -ne 0 ]; then
     WGET_CMD=(wget -q -O "$Temp_Dir/clash.yaml")
