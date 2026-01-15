@@ -277,7 +277,17 @@ if [ "$SKIP_CONFIG_REBUILD" != "true" ]; then
   Text3="配置文件clash.yaml下载成功！"
   Text4="配置文件clash.yaml下载失败！"
 
-  CURL_CMD=(curl -L -sS --retry 5 -m 10 -o "$Temp_Dir/clash.yaml")
+  # --- DBG: 显式打印并验证临时目录可写（systemd 下常见权限问题） ---
+  echo "[DBG] uid=$(id -u) user=$(id -un) SYSTEMD_MODE=${SYSTEMD_MODE:-}"
+  echo "[DBG] Server_Dir=$Server_Dir Conf_Dir=$Conf_Dir Temp_Dir=$Temp_Dir Log_Dir=$Log_Dir"
+  echo "[DBG] URL=$(printf '%q' "$URL")"
+
+  mkdir -p "$Temp_Dir" 2>/dev/null || true
+  touch "$Temp_Dir/.write_test" 2>/dev/null || { echo "[ERR] Temp_Dir not writable: $Temp_Dir" >&2; exit 2; }
+  rm -f "$Temp_Dir/.write_test" 2>/dev/null || true
+  # --- DBG end ---
+
+  CURL_CMD=(curl -fL -S --retry 2 --connect-timeout 10 -m 30 -o "$Temp_Dir/clash.yaml")
   if [ "$ALLOW_INSECURE_TLS" = "true" ]; then
     CURL_CMD+=(-k)
   fi
