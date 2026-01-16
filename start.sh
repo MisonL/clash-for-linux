@@ -37,7 +37,7 @@ SYSTEMD_MODE="${SYSTEMD_MODE:-false}"
 
 # root-only 强约束：不是 root 直接退出
 if [ "$(id -u)" -ne 0 ]; then
-  echo "[ERR] root-only mode: please run as root" >&2
+  echo "[ERR] root-only moL="$(printf '%s' "$URL" | tr -d '\rde: please run as root" >&2
   exit 2
 fi
 
@@ -88,6 +88,9 @@ URL="${CLASH_URL:-}"
 
 # 清理可能的 CRLF（Windows 写 .env 很常见）
 URL="$(printf '%s' "$URL" | tr -d '\r')"
+
+#让 bash 子进程能拿到
+export CLASH_URL="$URL"
 
 # 只有在“需要在线更新订阅”的模式下才强制要求 URL
 if [ -z "$URL" ] && [ "${SYSTEMD_MODE:-false}" != "true" ]; then
