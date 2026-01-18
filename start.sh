@@ -165,29 +165,50 @@ upsert_yaml_kv() {
 }
 
 ensure_ui_links() {
+  # UI 源目录：仓库内置 dashboard
   local ui_src="${UI_SRC_DIR:-$Server_Dir/dashboard/public}"
 
+  # UI 目标目录：必须落在 SAFE_PATHS（当前内核允许 /opt/clash-for-linux/conf）
+  local ui_dst="${EXTERNAL_UI_DIR:-$Conf_Dir/external-ui}"
+
   mkdir -p "$Conf_Dir" 2>/dev/null || true
+
+  # 目标目录必须是“真实目录”，不要用软链（软链可能跳出 conf 被 SAFE_PATH 拦）
+  mkdir -p "$ui_dst" 2>/dev/null || true
+
   if [ -d "$ui_src" ]; then
-    ln -sfn "$ui_src" "$Conf_Dir/ui" 2>/dev/null || true
+    # 复制/同步 UI 文件到 conf 子目录
+    # rsync 不一定存在，优先 rsync，其次 cp -a
+    if command -v rsync >/dev/null 2>&1; then
+      rsync -a --delete "$ui_src"/ "$ui_dst"/ 2>/dev/null || true
+    else
+      rm -rf "$ui_dst"/* 2>/dev/null || true
+      cp -a "$ui_src"/. "$ui_dst"/ 2>/dev/null || true
+    fi
   fi
 }
 
 force_write_controller_and_ui() {
   local file="$1"
   local controller="${EXTERNAL_CONTROLLER:-127.0.0.1:9090}"
-  local MIHOMO_UI_DIR="/opt/clash-for-linux/.config/mihomo/ui"
+
+  # external-ui：必须在 conf 子目录（SAFE_PATH）
+  local ui_dir="${EXTERNAL_UI_DIR:-$Conf_Dir/external-ui}"
 
   [ -n "$file" ] || return 1
 
   # 1) external-controller
   upsert_yaml_kv "$file" "external-controller" "$controller" || true
 
-  # 2) external-ui：使用 mihomo SAFE_PATH
-  mkdir -p "$MIHOMO_UI_DIR" 2>/dev/null || true
+  # 2) external-ui（落在 SAFE_PATH）
+  ensure_ui_links
 
-  if [ -d "$MIHOMO_UI_DIR" ]; then
-    upsert_yaml_kv "$file" "external-ui" "$MIHOMO_UI_DIR" || true
+  if [ -d "$ui_dir" ]; then
+    upsert_yaml_kv "$file" "external-ui" "$ui_dir" || true
+  else
+    # 目标目录不存在则不写，避免写死路径导致 mihomo fatal
+    # 如果你没有 delete_yaml_key 函数，就注释掉这行也没关系
+    delete_yaml_key "$file" "external-ui" 2>/dev/null || true
   fi
 }
 
