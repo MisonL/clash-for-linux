@@ -176,18 +176,18 @@ ensure_ui_links() {
 force_write_controller_and_ui() {
   local file="$1"
   local controller="${EXTERNAL_CONTROLLER:-127.0.0.1:9090}"
+  local MIHOMO_UI_DIR="/opt/clash-for-linux/.config/mihomo/ui"
 
   [ -n "$file" ] || return 1
 
   # 1) external-controller
   upsert_yaml_kv "$file" "external-controller" "$controller" || true
 
-  # 2) external-ui：永远写稳定路径 Conf_Dir/ui（脚本保证它存在且指向真实 UI）
-  ensure_ui_links
+  # 2) external-ui：使用 mihomo SAFE_PATH
+  mkdir -p "$MIHOMO_UI_DIR" 2>/dev/null || true
 
-  # 如果 UI 源目录缺失，就不要写 external-ui（避免写一个死路径）
-  if [ -e "$Conf_Dir/ui" ]; then
-    upsert_yaml_kv "$file" "external-ui" "$Conf_Dir/ui" || true
+  if [ -d "$MIHOMO_UI_DIR" ]; then
+    upsert_yaml_kv "$file" "external-ui" "$MIHOMO_UI_DIR" || true
   fi
 }
 
