@@ -5,13 +5,33 @@ set -euo pipefail
 
 Server_Dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 加载.env变量文件
-if [ ! -f "$Server_Dir/.env" ]; then
-  echo -e "\033[31m[ERROR]\033[0m 未找到 .env：$Server_Dir/.env"
+# 加载.env变量文件（优先使用安装目录 /opt；也支持手动指定）
+ENV_FILE_CANDIDATES=()
+
+# 1) 允许手动指定：CLASH_ENV=/path/to/.env ./update.sh
+if [ -n "${CLASH_ENV:-}" ]; then
+  ENV_FILE_CANDIDATES+=("$CLASH_ENV")
+fi
+
+# 2) 默认优先安装目录（systemd 实际运行目录）
+ENV_FILE_CANDIDATES+=("/opt/clash-for-linux/.env")
+
+# 3) 回退到脚本目录（仓库本地调试）
+ENV_FILE_CANDIDATES+=("$Server_Dir/.env")
+
+ENV_FILE=""
+for f in "${ENV_FILE_CANDIDATES[@]}"; do
+  if [ -f "$f" ]; then ENV_FILE="$f"; break; fi
+done
+
+if [ -z "$ENV_FILE" ]; then
+  echo -e "\033[31m[ERROR]\033[0m 未找到 .env（已尝试：${ENV_FILE_CANDIDATES[*]}）"
   exit 1
 fi
+
+echo -e "\033[36m[INFO]\033[0m Using .env: $ENV_FILE"
 # shellcheck disable=SC1090
-source "$Server_Dir/.env"
+source "$ENV_FILE"
 
 #################### 变量设置 ####################
 
@@ -192,6 +212,13 @@ fi
 
 apply_tun_config "$Temp_Dir/config.yaml"
 apply_mixin_config "$Temp_Dir/config.yaml" "$Server_Dir"
+
+# ---- guard: never apply empty config ----
+if [ ! -s "$Temp_Dir/config.yaml" ]; then
+  echo -e "\033[31m[ERROR]\033[0m 生成的配置为空：$Temp_Dir/config.yaml"
+  echo -e "\033[31m[ERROR]\033[0m 已中止写入 $Conf_Dir/config.yaml（保护最后一次可用配置）"
+  exit 1
+fi
 
 \cp "$Temp_Dir/config.yaml" "$Conf_Dir/config.yaml"
 
