@@ -523,6 +523,14 @@ if [ "$SKIP_CONFIG_REBUILD" != "true" ]; then
     fi
 
     echo "[INFO] Runtime config generated: $CONFIG_FILE (size=$(wc -c <"$CONFIG_FILE" 2>/dev/null || echo 0))"
+
+    # Optional: Fix group test URLs to HTTPS for reliability (safe, narrow scope)
+    if [ "${FIX_TEST_URL_HTTPS:-true}" = "true" ] && [ -s "$CONFIG_FILE" ]; then
+      # only replace " url: 'http://...'" or 'url: "http://..."' patterns
+      sed -i -E \
+        "s#(url:[[:space:]]*['\"])http://#\1https://#g" \
+        "$CONFIG_FILE" 2>/dev/null || true
+    fi
   else
     echo "[WARN] Download did not produce clash.yaml (rc=$ReturnStatus), skip runtime config generation" >&2
   fi
