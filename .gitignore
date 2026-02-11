@@ -1,0 +1,32 @@
+# Clash for Linux - Git Ignore Rules
+
+# Configuration
+.env
+conf/config.yaml
+conf/proxy-groups.yaml
+conf/proxies.yaml
+conf/rules.yaml
+
+# Logs
+logs/*.log
+*.log
+
+# Binaries & Tools
+bin/clash-linux-*
+tools/subconverter/subconverter
+tools/subconverter/subconverter-*
+tools/subconverter/bin/
+tools/subconverter/cache/
+tools/subconverter/db/
+
+# Temporary Files
+temp/
+*.tmp
+.DS_Store
+Thumbs.db
+
+# System / IDE
+.vscode/
+.idea/
+*.swp
+*~

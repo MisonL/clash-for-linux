@@ -36,13 +36,24 @@ download_clash_bin() {
 		return 1
 	fi
 
-	download_url="${CLASH_DOWNLOAD_URL_TEMPLATE:-https://github.com/Dreamacro/clash/releases/latest/download/clash-{arch}.gz}"
+	# 获取最新版本号
+	local latest_version
+	if command -v gh >/dev/null 2>&1; then
+		latest_version=$(gh release view --repo MetaCubeX/mihomo --json tagName -q .tagName)
+	elif command -v jq >/dev/null 2>&1 && command -v curl >/dev/null 2>&1; then
+		latest_version=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | jq -r .tag_name)
+	fi
+
+	latest_version="${latest_version:-v1.19.20}" # 兜底版本
+
+	download_url="${CLASH_DOWNLOAD_URL_TEMPLATE:-https://github.com/MetaCubeX/mihomo/releases/download/{version}/mihomo-linux-{arch}-{version}.gz}"
 	if [ -z "$download_url" ]; then
 		echo -e "\033[33m[WARN] 未设置 CLASH_DOWNLOAD_URL_TEMPLATE，跳过 Clash 内核自动下载\033[0m"
 		return 1
 	fi
 
 	download_url="${download_url//\{arch\}/${resolved_arch}}"
+	download_url="${download_url//\{version\}/${latest_version}}"
 	download_target="${server_dir}/bin/clash-${resolved_arch}"
 	archive_file="${server_dir}/temp/clash-${resolved_arch}.download"
 

@@ -97,6 +97,15 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+# =========================
+# 依赖检查（Point 3）
+# =========================
+if ! command -v python3 >/dev/null 2>&1; then
+  warn "未检测到 python3，终端 UI 渲染可能无法完美居中。建议安装以获得最佳体验。"
+  log "  $(cmd "sudo apt update && sudo apt install -y python3")"
+  log ""
+fi
+
 if [ ! -f "${Server_Dir}/.env" ]; then
   err "未找到 .env 文件，请确认脚本所在目录：${Server_Dir}"
   exit 1
